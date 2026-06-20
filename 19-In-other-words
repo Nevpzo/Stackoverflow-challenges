@@ -1,0 +1,105 @@
+import json
+from collections import Counter
+
+
+def normalize(text):
+    return ''.join(c.lower() for c in text if c.isalpha())
+
+
+def load_POS(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def candidates_build(text_letters, words_file, POS_file, min_len=4):
+    target = Counter(text_letters)
+
+    word_POS = {}
+    for POS, words in POS_file.items():
+        for w in words:
+            word_POS[w] = POS
+
+    candidates = []
+
+    with open(words_file, encoding="utf-8") as f:
+        for w in f:
+            w = w.strip()
+
+            if len(w) < min_len:
+                continue
+
+            cw = Counter(w)
+
+            if all(cw[c] <= target[c] for c in cw):
+                candidates.append((w, cw, word_POS.get(w, None)))
+
+    candidates.sort(key=lambda x: len(x[0]))
+    return candidates
+
+
+# depth first search to find anagrams
+def depth_first(remaining, start, acc, tags, candidates, dead):
+    if not remaining:
+        return acc if {"noun", "verb", "adje"} <= tags else None
+
+    state = tuple(sorted(remaining.items()))
+    if state in dead:
+        return None
+
+    for i in range(start, len(candidates)):
+        w, cw, POS = candidates[i]
+
+        if all(remaining[c] >= cw[c] for c in cw):
+            new_tags = set(tags)
+            if POS:
+                new_tags.add(POS)
+
+            res = depth_first(remaining - cw, i + 1, acc + [w],
+                new_tags, candidates, dead)
+
+            if res:
+                return res
+
+    dead.add(state)
+    return None
+
+
+def solve(text, words_file, POS_file, min_len):
+    letters = normalize(text)
+    target = Counter(letters)
+
+    POS_file = load_POS(POS_file)
+    candidates = candidates_build(letters, words_file, POS_file, min_len)
+
+    dead = set()
+
+    return depth_first(target, 0, [], set(), candidates, dead)
+
+# ----------------------------
+# RUN ALL 7 STRINGS
+texts = [
+    "Cat's Cradle is a satirical postmodern novel, with science fiction elements, by American writer Kurt Vonnegut.",
+    "Contact is a 1985 hard science fiction novel by American scientist Carl Sagan.",
+    "Animal Farm is a satirical allegorical dystopian novella, in the form of a beast fable, by George Orwell, first published in England on 17 August 1945.",
+    "Parable of the Sower is a 1993 speculative fiction novel by American writer Octavia E. Butler.",
+    "The End of Eternity is a 1955 science fiction novel by Isaac Asimov with mystery and thriller elements on the subjects of time travel and social engineering.",
+    "The Dispossessed is a 1974 anarchist utopian science fiction novel by American writer Ursula K. Le Guin, one of her seven Hainish Cycle novels.",
+    "The Hitchhiker's Guide to the Galaxy is a 1979 science fiction comedy novel by English author Douglas Adams, adapted from the first four parts of his radio comedy series of the same name."
+]
+
+for i, t in enumerate(texts, 1):
+    print("\n" + "=" * 40)
+    print(f"INPUT {i}")
+
+    res = solve(
+        t,
+        "./CodingChallenge/words.txt",
+        "./CodingChallenge/POS_words.json",
+        min_len=4,
+        debug=False
+    )
+
+    if res:
+        print(i, ".", " ".join(res))
+    else:
+        print("No solution found")
