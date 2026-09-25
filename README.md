@@ -10,3 +10,6 @@ This repository contains my solutions to some Stack Overflow challenges.
 - **7. Pangram Checker** - String operations
 - **9. Random Number Generator** - LCG implementaion
 - **18. Hidden in plain sight** - Steganography basics
+- **19. In other words** - Natural language anagrams
+- **20. We all scream for ice cream** - File reading and basic math
+- **21. Knight's Sudoku** - Sudoku solving
